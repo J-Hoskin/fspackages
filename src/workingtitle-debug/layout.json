@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "path": "manifest.json",
+      "size": 315,
+      "date": 132435864000000000
+    },
+    {
+      "path": "html_ui/Pages/VCockpit/Instruments/Airliners/Shared/BaseAirliners.js",
+      "size": 68716,
+      "date": 132435864000000000
+    }
+  ]
+}

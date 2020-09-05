@@ -1,0 +1,14 @@
+{
+  "content_type": "INSTRUMENTS",
+  "title": "workingtitle-debug",
+  "manufacturer": "Working Title",
+  "creator": "Working Title Mods",
+  "package_version": "0.1.0",
+  "minimum_game_version": "1.7.12",
+  "release_notes": {
+    "neutral": {
+      "LastUpdate": "",
+      "OlderHistory": ""
+    }
+  }
+}
