@@ -2,6 +2,7 @@ class CJ4_MFD extends BaseAirliners {
     constructor() {
         super();
         this.isExtended = false;
+        this.showChart = false;
         this.showTerrain = false;
         this.showWeather = false;
         this.showFms = false;
@@ -24,6 +25,7 @@ class CJ4_MFD extends BaseAirliners {
         this.map = new CJ4_MapContainer("Map", "Map");
         this.mapOverlay = new CJ4_MapOverlayContainer("MapInfos", "MapOverlay");
         this.fms = new CJ4_FMSContainer("Fms", "FMSInfos");
+        this.chart = new CJ4_ChartContainer("Chart", "Chart");
         this.navBar = new CJ4_NavBarContainer("Nav", "NavBar");
         this.popup = new CJ4_PopupMenuContainer("Menu", "PopupMenu");
         this.addIndependentElementContainer(this.systems1);
@@ -32,6 +34,7 @@ class CJ4_MFD extends BaseAirliners {
         this.addIndependentElementContainer(this.mapOverlay);
         this.addIndependentElementContainer(this.navBar);
         this.addIndependentElementContainer(this.fms);
+        this.addIndependentElementContainer(this.chart);
         this.addIndependentElementContainer(this.popup);
         this.modeChangeMask = this.getChildById("ModeChangeMask");
         this.maxUpdateBudget = 12;
@@ -84,9 +87,17 @@ class CJ4_MFD extends BaseAirliners {
                 this.systems1.minimize(true);
                 this.systems2.show(CJ4_SystemPage.NONE);
                 this.fms.show(true);
+                this.chart.show(false);
+            }
+            else if (this.showChart) {
+                this.systems1.minimize(true);
+                this.systems2.show(CJ4_SystemPage.NONE);
+                this.fms.show(false);
+                this.chart.show(true);
             }
             else {
                 this.fms.show(false);
+                this.chart.show(false);
                 this.systems1.show(this.systemPage1);
                 if (this.systemPage1 == CJ4_SystemPage.ENGINES) {
                     if (this.isExtended && !this.systems2.hasAnnunciations()) {
@@ -149,6 +160,10 @@ class CJ4_MFD extends BaseAirliners {
             case "Lwr_Push_SYS":
                 this.isExtended = !this.isExtended;
                 break;
+            case "Lwr_Push_CHART":
+                this.showChart = !this.showChart;
+                this.popup.setMode(CJ4_PopupMenu.NONE)
+                break;
             case "Lwr_Push_ENG":
                 this.systemPage1 = (this.systemPage1 == CJ4_SystemPage.ENGINES) ? CJ4_SystemPage.ANNUNCIATIONS : CJ4_SystemPage.ENGINES;
                 break;
@@ -158,7 +173,47 @@ class CJ4_MFD extends BaseAirliners {
                 break;
             case "Lwr_Push_LWR_MENU":
                 this.fillDictionary(this.popup.dictionary);
-                this.popup.setMode(CJ4_PopupMenu.LOWER);
+                if(this.showChart){
+                    this.popup.setMode(CJ4_PopupMenu.LOWER_CHART);
+                }
+                else{
+                    this.popup.setMode(CJ4_PopupMenu.LOWER);
+                }
+                break;
+            case "Lwr_JOYSTICK_DOWN":
+                if(this.showChart){
+                    const currentScrollPosition = SimVar.GetSimVarValue("L:CHART_SCROLL_POSITION", "number");
+                    if(currentScrollPosition > -350){
+                        SimVar.SetSimVarValue("L:CHART_SCROLL_POSITION", "number", currentScrollPosition - 10);
+                    }
+                }
+                break;
+            case "Lwr_JOYSTICK_UP":
+                if(this.showChart){
+                    const currentScrollPosition = SimVar.GetSimVarValue("L:CHART_SCROLL_POSITION", "number");
+                    if(currentScrollPosition < 0){
+                        SimVar.SetSimVarValue("L:CHART_SCROLL_POSITION", "number", currentScrollPosition + 10);
+                    }
+                }
+                break;
+            case "Lwr_DATA_INC":
+                // Prevent page scrolling when main chart index menu is open
+                if(this.showChart && this.popup.mode != CJ4_PopupMenu.LOWER_CHART){
+                    const currentChartPage = SimVar.GetSimVarValue("L:CHART_PAGE", "number");
+                    // 10 is an arbitrary page limit
+                    if(currentChartPage < 10){
+                        SimVar.SetSimVarValue("L:CHART_PAGE", "number", currentChartPage + 1);
+                    }
+                }
+                break;
+            case "Lwr_DATA_DEC":
+                // Prevent page scrolling when main chart index menu is open
+                if(this.showChart && this.popup.mode != CJ4_PopupMenu.LOWER_CHART){
+                    const currentChartPage = SimVar.GetSimVarValue("L:CHART_PAGE", "number");
+                    if(currentChartPage > 1){
+                        SimVar.SetSimVarValue("L:CHART_PAGE", "number", currentChartPage - 1);
+                    }
+                }
                 break;
         }
     }
@@ -225,18 +280,71 @@ class CJ4_MFD extends BaseAirliners {
         this.map.setSymbol(CJ4_MapSymbol.AIRWAYS, (_dict.get(CJ4_PopupMenu_Key.MAP_SYMBOL_AIRWAYS) == "ON") ? true : false);
         this.map.setSymbol(CJ4_MapSymbol.AIRSPACES, (_dict.get(CJ4_PopupMenu_Key.MAP_SYMBOL_AIRSPACES) == "ON") ? true : false);
         this.map.setSymbol(CJ4_MapSymbol.NAVAIDS, (_dict.get(CJ4_PopupMenu_Key.MAP_SYMBOL_NAVAIDS) == "ON") ? true : false);
+
+        // Uses a space for ORIGIN chart menu names for easy implementation
+        let chartSelection = _dict.get(CJ4_PopupMenu_Key.CHART_SELECTED);
+        if (chartSelection === "AIRPORT ") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 1);
+            modeChanged = true;
+        }
+        else if (chartSelection === "DEPARTURE ") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 2);
+            modeChanged = true;
+        }
+        else if (chartSelection === "ARRIVAL ") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 3);
+            modeChanged = true;
+        }
+        else if (chartSelection === "APPROACH ") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 4);
+            modeChanged = true;
+        }
+        else if (chartSelection === "ANY CHART ") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 5);
+            modeChanged = true;
+        }
+        else if (chartSelection === "ARRIVAL") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 6);
+            modeChanged = true;
+        }
+        else if (chartSelection === "APPROACH") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 7);
+            modeChanged = true;
+        }
+        else if (chartSelection === "AIRPORT") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 8);
+            modeChanged = true;
+        }
+        else if (chartSelection === "DEPARTURE") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 9);
+            modeChanged = true;
+        }
+        else if (chartSelection === "ANY CHART") {
+            SimVar.SetSimVarValue("L:SELECTED_AIRPORT_CHART", "number", 10);
+            modeChanged = true;
+        }
+
+
         let sysMode = _dict.get(CJ4_PopupMenu_Key.SYS_SRC);
         if (sysMode == "OFF") {
             this.isExtended = true;
             this.showFms = false;
+            this.showChart = false;
         }
         else if (sysMode == "FMS TEXT") {
             this.isExtended = false;
             this.showFms = true;
+            this.showChart = false;
+        }
+        else if (sysMode == "CHART") {
+            this.isExtended = false;
+            this.showFms = false;
+            this.showChart = true;
         }
         else if (sysMode == "SYSTEMS") {
             this.isExtended = false;
             this.showFms = false;
+            this.showChart = false;
         }
         if (modeChanged)
             this.onModeChanged();
@@ -264,6 +372,8 @@ class CJ4_MFD extends BaseAirliners {
             _dict.set(CJ4_PopupMenu_Key.SYS_SRC, "OFF");
         else if (this.showFms)
             _dict.set(CJ4_PopupMenu_Key.SYS_SRC, "FMS TEXT");
+        else if (this.showChart)
+            _dict.set(CJ4_PopupMenu_Key.SYS_SRC, "CHART");
         else
             _dict.set(CJ4_PopupMenu_Key.SYS_SRC, "SYSTEMS");
             _dict.changed = false;
@@ -443,6 +553,101 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
             }
         }
     }
+}
+
+class CJ4_ChartContainer extends NavSystemElementContainer {
+    constructor(_name, _root) {
+        super(_name, _root, null);
+        this.isVisible = false;
+    }
+    init() {
+        super.init();
+        this.root = this.gps.getChildById(this.htmlElemId);
+        if (!this.root) {
+            console.log("Root component expected!");
+            return;
+        }
+        this.root.setAttribute("visible", "false");
+    }
+    show(_value) {
+        if (this.isVisible != _value) {
+            this.isVisible = _value;
+            this.root.setAttribute("visible", (_value) ? "true" : "false");
+        }
+    }
+    onUpdate(_deltaTime) {
+        super.onUpdate(_deltaTime);
+        if (!this.isInitialized) {
+            this.init();
+            return;
+        }
+
+        const chartTypeSelected = SimVar.GetSimVarValue("L:SELECTED_AIRPORT_CHART", "number");
+        const baseChartPath = "/Pages/VCockpit/Instruments/Airliners/CJ4/MFD/Charts";
+        const chartPage = SimVar.GetSimVarValue("L:CHART_PAGE", "number");
+        const airportName = this.getSelectedAirportICAO(chartTypeSelected);
+        const chartFolder = this.getChartFolder(chartTypeSelected);
+        const chartImagePath = baseChartPath + "/" + airportName + "/" + chartFolder + "/" + airportName + "-" + chartPage + ".png";
+
+        // Manage scrolling
+        const scrollPosition = SimVar.GetSimVarValue("L:CHART_SCROLL_POSITION", "number");
+        let dimmingClass = "day";
+        if(SimVar.GetSimVarValue("L:CHART_DIMMING", "number") == 2){
+            dimmingClass = "night";
+        }
+
+        if(airportName != ""){
+            this.root.querySelector(".airportChart")
+                .setAttribute('style', "background-image: url('" + chartImagePath + "'); background-position-y:" + scrollPosition + 'px;"');
+
+            this.root.querySelector(".chartName").textContent = airportName + " " + chartPage;
+            this.root.querySelector(".chartType").textContent = chartFolder;
+            this.root.querySelector(".airportChart")
+                .setAttribute('class', 'airportChart' + ' ' + dimmingClass);
+        }
+        else{
+            this.root.querySelector(".chartName").textContent = "No airport selected";
+            this.root.querySelector(".chartType").textContent = "";
+        }
+
+    }
+    getSelectedAirportICAO(_chartTypeSelected) {
+        // Get airport ICAO
+        const flightPlanManager = this.gps.currFlightPlanManager;
+        if (_chartTypeSelected == 1 || _chartTypeSelected == 2 || _chartTypeSelected == 3 || _chartTypeSelected == 4 || _chartTypeSelected == 5) {
+            let origin = flightPlanManager.getOrigin();
+            if (origin) {
+                return origin.ident;
+            }
+        } else if (_chartTypeSelected == 6 || _chartTypeSelected == 7 || _chartTypeSelected == 8 || _chartTypeSelected == 9 || _chartTypeSelected == 10) {
+            let destination = flightPlanManager.getDestination();
+            if (destination) {
+                return destination.ident;
+            }
+        }
+        return "";
+    }
+    getChartFolder(_chartTypeSelected){
+        // Folder info
+        let folder = "Aerodrome";
+        if(_chartTypeSelected == 1 || _chartTypeSelected == 8){
+            folder = "Aerodrome";
+        }
+        else if(_chartTypeSelected == 2 || _chartTypeSelected == 9){
+            folder = "Departure";
+        }
+        else if(_chartTypeSelected == 3 || _chartTypeSelected == 6){
+            folder = "Arrival";
+        }
+        else if(_chartTypeSelected == 4 || _chartTypeSelected == 7){
+            folder = "Approach";
+        }
+        else if(_chartTypeSelected == 5 || _chartTypeSelected == 10){
+            folder = "Other";
+        }
+        return folder;
+    }
+
 }
 registerInstrument("cj4-mfd-element", CJ4_MFD);
 //# sourceMappingURL=CJ4_MFD.js.map

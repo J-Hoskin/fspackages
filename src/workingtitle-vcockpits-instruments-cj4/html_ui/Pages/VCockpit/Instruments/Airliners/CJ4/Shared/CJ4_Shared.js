@@ -2862,6 +2862,7 @@ var CJ4_PopupMenu;
     CJ4_PopupMenu[CJ4_PopupMenu["REFS"] = 2] = "REFS";
     CJ4_PopupMenu[CJ4_PopupMenu["UPPER"] = 3] = "UPPER";
     CJ4_PopupMenu[CJ4_PopupMenu["LOWER"] = 4] = "LOWER";
+    CJ4_PopupMenu[CJ4_PopupMenu["LOWER_CHART"] = 5] = "LOWER_CHART";
 })(CJ4_PopupMenu || (CJ4_PopupMenu = {}));
 class CJ4_PopupMenuContainer extends NavSystemElementContainer {
     constructor(_name, _root) {
@@ -2935,6 +2936,9 @@ class CJ4_PopupMenuContainer extends NavSystemElementContainer {
                 case CJ4_PopupMenu.LOWER:
                     this.handler = new CJ4_PopupMenu_LOWER(this.root, this.dictionary);
                     break;
+                case CJ4_PopupMenu.LOWER_CHART:
+                    this.handler = new CJ4_PopupMenu_LOWER_CHART(this.root, this.dictionary, this.gps);
+                    break;
                 default:
                     this.handler = null;
                     break;
@@ -2981,6 +2985,8 @@ var CJ4_PopupMenu_Key;
     CJ4_PopupMenu_Key[CJ4_PopupMenu_Key["MIN_ALT_BARO_VAL"] = 25] = "MIN_ALT_BARO_VAL";
     CJ4_PopupMenu_Key[CJ4_PopupMenu_Key["MIN_ALT_RADIO_VAL"] = 26] = "MIN_ALT_RADIO_VAL";
     CJ4_PopupMenu_Key[CJ4_PopupMenu_Key["SYS_SRC"] = 27] = "SYS_SRC";
+    CJ4_PopupMenu_Key[CJ4_PopupMenu_Key["CHART_SELECTED"] = 26] = "CHART_SELECTED";
+    CJ4_PopupMenu_Key[CJ4_PopupMenu_Key["CHART_DIMMING"] = 27] = "CHART_DIMMING";
 })(CJ4_PopupMenu_Key || (CJ4_PopupMenu_Key = {}));
 class CJ4_PopupMenu_Handler extends Airliners.PopupMenu_Handler {
     constructor() {
@@ -3271,6 +3277,7 @@ class CJ4_PopupMenu_UPPER extends CJ4_PopupMenu_Handler {
                 this.addRadio("OFF", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
                 this.addRadio("FMS TEXT", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
                 this.addRadio("SYSTEMS", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
+                this.addRadio("CHART", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
             }
             this.endSection();
         }
@@ -3363,6 +3370,107 @@ class CJ4_PopupMenu_LOWER extends CJ4_PopupMenu_Handler {
         }
         this.closeMenu();
         this.escapeCbk = this.showMainPage.bind(this, 7);
+        page.appendChild(sectionRoot);
+        Utils.RemoveAllChildren(this.root);
+        this.root.appendChild(page);
+    }
+}
+class CJ4_PopupMenu_LOWER_CHART extends CJ4_PopupMenu_Handler {
+    constructor(_root, _dictionary, _gps) {
+        super();
+        this.titleSize = 15;
+        this.textSize = 13;
+        this.root = _root;
+        this.dictionary = _dictionary;
+        this.menuLeft = 35;
+        this.menuTop = 60;
+        this.menuWidth = 430;
+        this.gps = _gps;
+        this.showChartPage();
+    }
+
+    reset() {
+        this.showChartPage();
+    }
+
+    showChartPage(_highlight = 0) {
+        this._isOnMainPage = true;
+        let page = document.createElementNS(Avionics.SVG.NS, "svg");
+        page.setAttribute("id", "ViewBox");
+        page.setAttribute("viewBox", "0 0 500 500");
+
+        this.originAirport = "----";
+        this.destinationAirport = "----";
+        if(this.gps){
+            let flightPlanManager = this.gps.currFlightPlanManager;
+            let origin = flightPlanManager.getOrigin();
+            let destination = flightPlanManager.getDestination();
+
+            if(origin){
+                this.originAirport = origin.ident;
+            }
+
+            if(destination){
+                this.destinationAirport = destination.ident;
+            }
+        }
+
+        let sectionRoot = this.openMenu();
+        {
+            this.beginSection();
+            {
+                this.addTitle("CHART MAIN INDEX", this.titleSize, 1.0, "blue");
+            }
+            this.endSection();
+            this.beginSection();
+            {
+                this.addTitle("ORIGIN - " + this.originAirport, this.textSize, 0.45);
+                this.addTextItem("AIRPORT ", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED], "AIRPORT, AIRPORT INFO, TAKE-OFF MNMS");
+                this.addTextItem("DEPARTURE ", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED], "SIDS");
+                this.addSmallBlankItem();
+                this.addTextItem("ARRIVAL ", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED], "STARS");
+                this.addTextItem("APPROACH ", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED], "ALL");
+                this.addTextItem("ANY CHART ", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED],"ALL");
+                this.addTextItem("CHART NOTAMS --", this.textSize, null);
+            }
+            this.endSection();
+            this.beginSection();
+            {
+                this.addTitle("DESTINATION - " + this.destinationAirport, this.textSize, 0.45);
+                this.addTextItem("ARRIVAL", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED], "STARS");
+                this.addTextItem("APPROACH", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED], "ALL");
+                this.addTextItem("AIRPORT", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED], "AIRPORT, AIRPORT INFO, TAKE-OFF MNMS");
+                this.addSmallBlankItem();
+                this.addTextItem("DEPARTURE", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED], "SIDS");
+                this.addTextItem("ANY CHART", this.textSize, [CJ4_PopupMenu_Key.CHART_SELECTED], "ALL");
+                this.addTextItem("CHART NOTAMS --", this.textSize, null);
+            }
+            this.endSection();
+            this.beginSection();
+            {
+                this.addTitle("ALTERNATE - ----", this.textSize, 0.45);
+                this.addTextItem("ANY CHART", this.textSize, null);
+                this.addTextItem("ANY CHART", this.textSize, null);
+                this.addTextItem("CHART NOTAMS --", this.textSize, null);
+            }
+            this.endSection();
+            this.beginSection();
+            {
+                this.addTitle("OTHER AIRPORT - ----", this.textSize, 0.45);
+                this.addTextItem("ANY CHART", this.textSize, null);
+                this.addTextItem("ANY CHART", this.textSize, null);
+                this.addTextItem("CHART NORMS --", this.textSize, null);
+            }
+            this.endSection();
+            this.beginSection();
+            {
+                this.addTextItem("CHART DIMMING", this.textSize, [CJ4_PopupMenu_Key.CHART_DIMMING]);
+                this.addBigBlankItem();
+            }
+            this.endSection();
+        }
+        this.closeMenu();
+        this.highlight(_highlight);
         page.appendChild(sectionRoot);
         Utils.RemoveAllChildren(this.root);
         this.root.appendChild(page);

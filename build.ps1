@@ -2,7 +2,7 @@ param (
     [Parameter(Mandatory = $true)][string]$Project,
     [string]$Package,
     [string]$MinimumGameVersion = "1.7.14",
-    [string]$OutputPath = ".\build\",
+    [string]$OutputPath = "C:\Users\Calcutt\AppData\Local\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalCache\Packages\Community",
     [switch]$WatchFiles = $false,
     [switch]$CleanBuild = $false
 )
