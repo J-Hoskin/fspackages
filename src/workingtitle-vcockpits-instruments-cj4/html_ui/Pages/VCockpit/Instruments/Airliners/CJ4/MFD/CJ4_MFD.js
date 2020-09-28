@@ -83,7 +83,10 @@ class CJ4_MFD extends BaseAirliners {
             if (this.showFms) {
                 this.systems1.minimize(true);
                 this.systems2.show(CJ4_SystemPage.NONE);
+                this.map.setExtended(false);
+                this.mapOverlay.setExtended(false);
                 this.fms.show(true);
+                console.log("T")
             }
             else {
                 this.fms.show(false);
@@ -333,15 +336,6 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                     .querySelector(".cj4x-navigation-data-waypoint-distance")
                     .textContent = previousWaypoint.distanceInFP.toFixed(1) + " NM";
 
-                // Set ETE
-                let eteValue = "-:--";
-                if (isFinite(previousWaypoint.estimatedTimeEnRouteFP)) {
-                    eteValue = CJ4_FMSContainer.secondsTohhmm(previousWaypoint.estimatedTimeOfEnrouteFP);
-                }
-                this._previousWaypointContainer
-                    .querySelector(".cj4x-navigation-data-waypoint-ete")
-                    .textContent = eteValue;
-
                 // Set ETA
                 let etaValue = "--:--";
                 if (isFinite(previousWaypoint.estimatedTimeOfArrivalFP)) {
@@ -360,37 +354,43 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
             /* SET ACTIVE WAYPOINT FMS INFO */
             let activeWaypoint = flightPlanManager.getActiveWaypoint();
             if (activeWaypoint) {
-                this._activeWaypointContainer.style.display = "block";
-
-                // Set identification ICAO
-                this._activeWaypointContainer
-                    .querySelector(".cj4x-navigation-data-waypoint-ident")
-                    .textContent = activeWaypoint.ident;
-
-                // Set distance to go
-                this._activeWaypointContainer
-                    .querySelector(".cj4x-navigation-data-waypoint-distance")
-                    .textContent = activeWaypoint.cumulativeDistanceInFP.toFixed(1) + " NM";
-
-                // Set ETE
-                let eteValue = "-:--";
-                if (isFinite(activeWaypoint.estimatedTimeEnRouteFP)) {
-                    eteValue = CJ4_FMSContainer.secondsTohhmm(activeWaypoint.estimatedTimeEnRouteFP);
+                const destination = flightPlanManager.getDestination();
+                if(destination && activeWaypoint.ident == destination.ident){
+                    this._activeWaypointContainer.style.display = "none";
                 }
+                else{
+                    this._activeWaypointContainer.style.display = "block";
 
-                this._activeWaypointContainer
-                    .querySelector(".cj4x-navigation-data-waypoint-ete")
-                    .textContent = eteValue;
+                    // Set identification ICAO
+                    this._activeWaypointContainer
+                        .querySelector(".cj4x-navigation-data-waypoint-ident")
+                        .textContent = activeWaypoint.ident;
 
-                // Set ETA
-                let etaValue = "--:--";
-                if (isFinite(activeWaypoint.estimatedTimeOfArrivalFP)) {
-                    etaValue = CJ4_FMSContainer.secondsTohhmm(activeWaypoint.estimatedTimeOfArrivalFP);
+                    // Set distance to go
+                    this._activeWaypointContainer
+                        .querySelector(".cj4x-navigation-data-waypoint-distance")
+                        .textContent = activeWaypoint.distanceInFP.toFixed(1) + " NM";
+
+                    // Set ETE
+                    let eteValue = "-:--";
+                    if (isFinite(activeWaypoint.estimatedTimeEnRouteFP)) {
+                        eteValue = CJ4_FMSContainer.secondsTohhmm(activeWaypoint.estimatedTimeEnRouteFP);
+                    }
+
+                    this._activeWaypointContainer
+                        .querySelector(".cj4x-navigation-data-waypoint-ete")
+                        .textContent = eteValue;
+
+                    // Set ETA
+                    let etaValue = "--:--";
+                    if (isFinite(activeWaypoint.estimatedTimeOfArrivalFP)) {
+                        etaValue = CJ4_FMSContainer.secondsTohhmm(activeWaypoint.estimatedTimeOfArrivalFP);
+                    }
+
+                    this._activeWaypointContainer
+                        .querySelector(".cj4x-navigation-data-waypoint-eta")
+                        .textContent = etaValue;
                 }
-
-                this._activeWaypointContainer
-                    .querySelector(".cj4x-navigation-data-waypoint-eta")
-                    .textContent = etaValue;
             }
             else {
                 this._activeWaypointContainer.style.display = "none";
@@ -414,14 +414,12 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                     // Set distance to go
                     this._nextWaypointContainer
                         .querySelector(".cj4x-navigation-data-waypoint-distance")
-                        .textContent = nextWaypoint.cumulativeDistanceInFP.toFixed(1) + " NM";
+                        .textContent = nextWaypoint.distanceInFP.toFixed(1) + " NM";
 
                     // Set ETE
                     let eteValue = "-:--";
-                    if (activeWaypoint) {
-                        if (isFinite(nextWaypoint.estimatedTimeEnRouteFP)) {
-                            eteValue = CJ4_FMSContainer.secondsTohhmm(nextWaypoint.estimatedTimeEnRouteFP);
-                        }
+                    if (isFinite(nextWaypoint.estimatedTimeEnRouteFP)) {
+                        eteValue = CJ4_FMSContainer.secondsTohhmm(nextWaypoint.estimatedTimeEnRouteFP);
                     }
 
                     this._nextWaypointContainer
@@ -430,10 +428,8 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
 
                     // Set ETA
                     let etaValue = "--:--";
-                    if (activeWaypoint) {
-                        if (isFinite(nextWaypoint.estimatedTimeOfArrivalFP)) {
-                            etaValue = CJ4_FMSContainer.secondsTohhmm(nextWaypoint.estimatedTimeOfArrivalFP);
-                        }
+                    if (isFinite(nextWaypoint.estimatedTimeOfArrivalFP)) {
+                        etaValue = CJ4_FMSContainer.secondsTohhmm(nextWaypoint.estimatedTimeOfArrivalFP);
                     }
 
                     this._nextWaypointContainer
@@ -454,13 +450,9 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                     .textContent = destination.ident;
 
                 // Set distance to go
-                let distTogoValue = "---NM";
-                if (isFinite(destination.cumulativeDistanceInFP)) {
-                    distTogoValue = destination.cumulativeDistanceInFP.toFixed(1) + " NM";
-                }
                 this._destinationWaypointContainer
                     .querySelector(".cj4x-navigation-data-waypoint-distance")
-                    .textContent = distTogoValue;
+                    .textContent = destination.distanceInFP.toFixed(1) + " NM";
 
                 // Set ETE
                 let eteValue = "-:--";
@@ -479,6 +471,11 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                 this._destinationWaypointContainer
                     .querySelector(".cj4x-navigation-data-waypoint-eta")
                     .textContent = etaValue;
+
+                if(destination.ident == activeWaypoint.ident){
+                    this._destinationWaypointContainer
+                        .setAttribute("style", "color: magenta");
+                }
             }
         }
     }
