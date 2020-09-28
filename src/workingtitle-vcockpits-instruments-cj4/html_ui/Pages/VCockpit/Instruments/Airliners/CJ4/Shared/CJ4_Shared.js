@@ -3276,7 +3276,9 @@ class CJ4_PopupMenu_UPPER extends CJ4_PopupMenu_Handler {
                 this.addTitle("FORMAT", this.textSize, 0.45);
                 this.addRadio("OFF", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
                 this.addRadio("FMS TEXT", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
-                this.addRadio("SYSTEMS", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
+                this.addRadio("CHECKLIST", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
+                this.addRadio("PASS BRIEF", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
+                this.addRadio("SYSTEMS 1/2", this.textSize, [CJ4_PopupMenu_Key.SYS_SRC]);
             }
             this.endSection();
         }
