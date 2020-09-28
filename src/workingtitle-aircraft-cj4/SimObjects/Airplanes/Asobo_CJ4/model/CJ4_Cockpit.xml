@@ -1049,10 +1049,6 @@
 			<NODE_ID>push_oxygenMask</NODE_ID>
 		</UseTemplate>
 		<UseTemplate Name="ASOBO_GT_Interaction_Tooltip">
-            <NODE_ID>CCP_PUSH_UPRMENU</NODE_ID>
-            <CONTAINER_COUNT>2</CONTAINER_COUNT>
-        </UseTemplate>
-		<UseTemplate Name="ASOBO_GT_Interaction_Tooltip">
             <NODE_ID>CCP_PUSH_CURSR</NODE_ID>
             <CONTAINER_COUNT>2</CONTAINER_COUNT>
         </UseTemplate>
