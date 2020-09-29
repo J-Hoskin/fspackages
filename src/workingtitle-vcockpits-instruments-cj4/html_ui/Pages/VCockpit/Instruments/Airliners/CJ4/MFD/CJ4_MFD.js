@@ -276,6 +276,7 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
     constructor(_name, _root) {
         super(_name, _root, null);
         this.isVisible = undefined;
+        this.previousWaypoint = undefined;
         this._k = 0;
     }
     static secondsTohhmm(seconds) {
@@ -320,6 +321,14 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                 this._k = 0;
             }
 
+            let lat = SimVar.GetSimVarValue("PLANE LATITUDE", "degree latitude");
+            let long = SimVar.GetSimVarValue("PLANE LONGITUDE", "degree longitude");
+            let aircraftPosition = new LatLong(lat, long);
+            let groundSpeed = SimVar.GetSimVarValue("GPS GROUND SPEED", "knots");
+            const FPWaypoints = flightPlanManager._waypoints[flightPlanManager._currentFlightPlanIndex];
+            const UTCTime = SimVar.GetSimVarValue("E:ZULU TIME", "seconds");
+
+            //region previous
             /* SET PREVIOUS WAYPOINT FMS INFO */
             let previousWaypointIndex = flightPlanManager.getActiveWaypointIndex() - 1;
             let previousWaypoint = flightPlanManager.getWaypoint(previousWaypointIndex);
@@ -338,8 +347,10 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
 
                 // Set ETA
                 let etaValue = "--:--";
-                if (isFinite(previousWaypoint.estimatedTimeOfArrivalFP)) {
-                    etaValue = CJ4_FMSContainer.secondsTohhmm(previousWaypoint.estimatedTimeOfArrivalFP);
+                if (this.previousWaypoint == undefined || this.previousWaypoint.ident != previousWaypoint) {
+                    const seconds = Number.parseInt(UTCTime);
+                    etaValue = Utils.SecondsToDisplayTime(seconds, true, false, false);
+                    this.previousWaypoint = previousWaypoint;
                 }
 
                 this._previousWaypointContainer
@@ -350,9 +361,12 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
             else {
                 this._previousWaypointContainer.style.display = "none";
             }
+            //endregion
 
+            //region active
             /* SET ACTIVE WAYPOINT FMS INFO */
-            let activeWaypoint = flightPlanManager.getActiveWaypoint();
+            let activeIndex = flightPlanManager.getActiveWaypointIndex();
+            let activeWaypoint = FPWaypoints[activeIndex];
             if (activeWaypoint) {
                 const destination = flightPlanManager.getDestination();
                 if(destination && activeWaypoint.ident == destination.ident){
@@ -367,14 +381,15 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                         .textContent = activeWaypoint.ident;
 
                     // Set distance to go
+                    const activeWaypointDistance = Avionics.Utils.computeDistance(aircraftPosition, activeWaypoint.infos.coordinates).toFixed(1);
                     this._activeWaypointContainer
                         .querySelector(".cj4x-navigation-data-waypoint-distance")
-                        .textContent = activeWaypoint.distanceInFP.toFixed(1) + " NM";
+                        .textContent = activeWaypointDistance + " NM";
 
                     // Set ETE
                     let eteValue = "-:--";
-                    if (isFinite(activeWaypoint.estimatedTimeEnRouteFP)) {
-                        eteValue = CJ4_FMSContainer.secondsTohhmm(activeWaypoint.estimatedTimeEnRouteFP);
+                    if(groundSpeed >= 50){
+                        eteValue = new Date(this.calcETEseconds(activeWaypointDistance, groundSpeed) * 1000).toISOString().substr(11, 5);
                     }
 
                     this._activeWaypointContainer
@@ -383,8 +398,10 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
 
                     // Set ETA
                     let etaValue = "--:--";
-                    if (isFinite(activeWaypoint.estimatedTimeOfArrivalFP)) {
-                        etaValue = CJ4_FMSContainer.secondsTohhmm(activeWaypoint.estimatedTimeOfArrivalFP);
+                    if(groundSpeed >= 50){
+                        const seconds = Number.parseInt(UTCTime) + (this.calcETEseconds(activeWaypointDistance, groundSpeed));
+                        const time = Utils.SecondsToDisplayTime(seconds, true, false, false);
+                        etaValue = time;
                     }
 
                     this._activeWaypointContainer
@@ -395,10 +412,10 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
             else {
                 this._activeWaypointContainer.style.display = "none";
             }
+            //endregion
 
             /* SET NEXT WAYPOINT FMS INFO */
-            let nextWaypointIndex = flightPlanManager.getActiveWaypointIndex() + 1;
-            let nextWaypoint = flightPlanManager.getWaypoint(nextWaypointIndex);
+            let nextWaypoint = flightPlanManager.getWaypoint(activeIndex + 1);
             if (nextWaypoint) {
                 const destination = flightPlanManager.getDestination();
                 if(destination && nextWaypoint.ident == destination.ident){
@@ -412,14 +429,15 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                         .textContent = nextWaypoint.ident;
 
                     // Set distance to go
+                    const nextWaypointDistance = (Avionics.Utils.computeDistance(aircraftPosition, activeWaypoint.infos.coordinates) + Avionics.Utils.computeDistance(activeWaypoint.infos.coordinates, nextWaypoint.infos.coordinates)).toFixed(1);
                     this._nextWaypointContainer
                         .querySelector(".cj4x-navigation-data-waypoint-distance")
-                        .textContent = nextWaypoint.distanceInFP.toFixed(1) + " NM";
+                        .textContent = nextWaypointDistance + " NM";
 
                     // Set ETE
                     let eteValue = "-:--";
-                    if (isFinite(nextWaypoint.estimatedTimeEnRouteFP)) {
-                        eteValue = CJ4_FMSContainer.secondsTohhmm(nextWaypoint.estimatedTimeEnRouteFP);
+                    if(groundSpeed >= 50) {
+                        eteValue = new Date(this.calcETEseconds(nextWaypointDistance, groundSpeed) * 1000).toISOString().substr(11, 5);
                     }
 
                     this._nextWaypointContainer
@@ -428,8 +446,10 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
 
                     // Set ETA
                     let etaValue = "--:--";
-                    if (isFinite(nextWaypoint.estimatedTimeOfArrivalFP)) {
-                        etaValue = CJ4_FMSContainer.secondsTohhmm(nextWaypoint.estimatedTimeOfArrivalFP);
+                    if(groundSpeed >= 50) {
+                        const seconds = Number.parseInt(UTCTime) + (this.calcETEseconds(nextWaypointDistance, groundSpeed));
+                        const time = Utils.SecondsToDisplayTime(seconds, true, false, false);
+                        etaValue = time;
                     }
 
                     this._nextWaypointContainer
@@ -450,27 +470,44 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                     .textContent = destination.ident;
 
                 // Set distance to go
+                const destinationWaypointDistance = destination.cumulativeDistanceInFP.toFixed(1);
                 this._destinationWaypointContainer
                     .querySelector(".cj4x-navigation-data-waypoint-distance")
-                    .textContent = destination.distanceInFP.toFixed(1) + " NM";
+                    .textContent = destinationWaypointDistance + " NM";
 
                 // Set ETE
                 let eteValue = "-:--";
-                if (isFinite(destination.cumulativeEstimatedTimeEnRouteFP)) {
-                    eteValue = CJ4_FMSContainer.secondsTohhmm(destination.cumulativeEstimatedTimeEnRouteFP);
+                if(groundSpeed >= 50) {
+                    eteValue = new Date(this.calcETEseconds(destinationWaypointDistance, groundSpeed) * 1000).toISOString().substr(11, 5);
                 }
+
                 this._destinationWaypointContainer
                     .querySelector(".cj4x-navigation-data-waypoint-ete")
                     .textContent = eteValue;
 
                 // Set ETA
                 let etaValue = "--:--";
-                if (isFinite(destination.estimatedTimeOfArrivalFP)) {
-                    etaValue = CJ4_FMSContainer.secondsTohhmm(destination.estimatedTimeOfArrivalFP);
+                if(groundSpeed >= 50) {
+                    const seconds = Number.parseInt(UTCTime) + (this.calcETEseconds(destinationWaypointDistance, groundSpeed));
+                    const time = Utils.SecondsToDisplayTime(seconds, true, false, false);
+                    etaValue = time;
                 }
+
                 this._destinationWaypointContainer
                     .querySelector(".cj4x-navigation-data-waypoint-eta")
                     .textContent = etaValue;
+
+                // Set expected fuel
+                if(groundSpeed >= 50){
+                    const fuelFlow = (SimVar.GetSimVarValue("ENG FUEL FLOW PPH:1", "Pounds per hour") + SimVar.GetSimVarValue("ENG FUEL FLOW PPH:2", "Pounds per hour")) / 2;
+                    const expectedFuelUsage = (fuelFlow * ((this.calcETEseconds(destinationWaypointDistance, groundSpeed)) / 3600)).toFixed(0);
+                    const currentFuel =  (SimVar.GetSimVarValue("FUEL WEIGHT PER GALLON", "pounds") * SimVar.GetSimVarValue("FUEL TOTAL QUANTITY", "gallons")).toFixed(0);
+                    const expectedFuelAtDestination = (currentFuel - expectedFuelUsage).toFixed(0);
+
+                    this._destinationWaypointContainer
+                        .querySelector(".cj4x-navigation-data-waypoint-expected-fuel")
+                        .textContent = expectedFuelAtDestination + " LB --.-GW";
+                }
 
                 if(destination.ident == activeWaypoint.ident){
                     this._destinationWaypointContainer
@@ -478,6 +515,9 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                 }
             }
         }
+    }
+    calcETEseconds(distance, currentGroundSpeed) {
+        return (distance / currentGroundSpeed) * 3600;
     }
 }
 registerInstrument("cj4-mfd-element", CJ4_MFD);
