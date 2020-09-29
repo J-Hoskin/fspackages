@@ -343,7 +343,7 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                 // Set distance to go
                 this._previousWaypointContainer
                     .querySelector(".cj4x-navigation-data-waypoint-distance")
-                    .textContent = previousWaypoint.distanceInFP.toFixed(1) + " NM";
+                    .textContent = Avionics.Utils.computeDistance(aircraftPosition, previousWaypoint.infos.coordinates).toFixed(1) + " NM";
 
                 // Set ETA
                 let etaValue = "--:--";
