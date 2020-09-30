@@ -501,12 +501,15 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
                 if(groundSpeed >= 50){
                     const fuelFlow = (SimVar.GetSimVarValue("ENG FUEL FLOW PPH:1", "Pounds per hour") + SimVar.GetSimVarValue("ENG FUEL FLOW PPH:2", "Pounds per hour")) / 2;
                     const expectedFuelUsage = (fuelFlow * ((this.calcETEseconds(destinationWaypointDistance, groundSpeed)) / 3600)).toFixed(0);
-                    const currentFuel =  (SimVar.GetSimVarValue("FUEL WEIGHT PER GALLON", "pounds") * SimVar.GetSimVarValue("FUEL TOTAL QUANTITY", "gallons")).toFixed(0);
-                    const expectedFuelAtDestination = (currentFuel - expectedFuelUsage).toFixed(0);
+                    const currentFuel = (SimVar.GetSimVarValue("FUEL WEIGHT PER GALLON", "pounds") * SimVar.GetSimVarValue("FUEL TOTAL QUANTITY", "gallons")).toFixed(0);
+                    const expectedFuelAtDestination = (currentFuel - expectedFuelUsage).toFixed(0) < 0 ? 0 : (currentFuel - expectedFuelUsage).toFixed(0);
+                    const grossWeight = SimVar.GetSimVarValue("MAX GROSS WEIGHT", "pounds");
+                    const oilQuantity = SimVar.GetSimVarValue("OIL AMOUNT", "pounds")
+                    const expectedGrossWeight = expectedFuelAtDestination == 0 ? grossWeight : (grossWeight - expectedFuelUsage).toFixed(1);
 
                     this._destinationWaypointContainer
                         .querySelector(".cj4x-navigation-data-waypoint-expected-fuel")
-                        .textContent = expectedFuelAtDestination + " LB --.-GW";
+                        .textContent = expectedFuelAtDestination + " LB " + expectedGrossWeight + " GW";
                 }
 
                 if(destination.ident == activeWaypoint.ident){
