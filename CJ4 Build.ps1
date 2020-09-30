@@ -1,7 +1,7 @@
 param (
     [string]$Project = "workingtitle-project-cj4.xml",
     [string]$Package,
-    [string]$MinimumGameVersion = "1.7.14",
+    [string]$MinimumGameVersion = "1.9.2",
     [string]$OutputPath = "C:\Users\Calcutt\AppData\Local\Packages\Microsoft.FlightSimulator_8wekyb3d8bbwe\LocalCache\Packages\Community",
     [switch]$WatchFiles = $false,
     [switch]$CleanBuild = $false
