@@ -6,6 +6,7 @@ class CJ4_MFD extends BaseAirliners {
         this.showWeather = false;
         this.showFms = false;
         this.showGwx = false;
+        this.showChecklist = false;
         this.mapDisplayMode = Jet_NDCompass_Display.ROSE;
         this.mapNavigationMode = Jet_NDCompass_Navigation.NAV;
         this.mapNavigationSource = 0;
@@ -26,6 +27,7 @@ class CJ4_MFD extends BaseAirliners {
         this.fms = new CJ4_FMSContainer("Fms", "FMSInfos");
         this.navBar = new CJ4_NavBarContainer("Nav", "NavBar");
         this.popup = new CJ4_PopupMenuContainer("Menu", "PopupMenu");
+        this.checklist = new CJ4_Checklist("Checklist", "Checklist");
         this.addIndependentElementContainer(this.systems1);
         this.addIndependentElementContainer(this.systems2);
         this.addIndependentElementContainer(this.map);
@@ -33,6 +35,7 @@ class CJ4_MFD extends BaseAirliners {
         this.addIndependentElementContainer(this.navBar);
         this.addIndependentElementContainer(this.fms);
         this.addIndependentElementContainer(this.popup);
+        this.addIndependentElementContainer(this.checklist);
         this.modeChangeMask = this.getChildById("ModeChangeMask");
         this.maxUpdateBudget = 12;
     }
@@ -86,10 +89,20 @@ class CJ4_MFD extends BaseAirliners {
                 this.map.setExtended(false);
                 this.mapOverlay.setExtended(false);
                 this.fms.show(true);
-                console.log("T")
+                this.checklist.showChecklist(false);
+            }
+            else if (this.showChecklist) {
+                this.systems1.minimize(true);
+                this.systems2.show(CJ4_SystemPage.NONE);
+                this.map.setExtended(false);
+                this.mapOverlay.setExtended(false);
+                this.fms.show(false);
+                this.checklist.showChecklist(true);
+                console.log("Opening Checklist")
             }
             else {
                 this.fms.show(false);
+                this.checklist.showChecklist(false);
                 this.systems1.show(this.systemPage1);
                 if (this.systemPage1 == CJ4_SystemPage.ENGINES) {
                     if (this.isExtended && !this.systems2.hasAnnunciations()) {
@@ -241,6 +254,11 @@ class CJ4_MFD extends BaseAirliners {
             this.isExtended = false;
             this.showFms = false;
         }
+        else if (sysMode == "CHECKLIST") {
+            this.isExtended = false;
+            this.showFms = false;
+            this.showChecklist = true;
+        }
         if (modeChanged)
             this.onModeChanged();
     }
@@ -267,6 +285,8 @@ class CJ4_MFD extends BaseAirliners {
             _dict.set(CJ4_PopupMenu_Key.SYS_SRC, "OFF");
         else if (this.showFms)
             _dict.set(CJ4_PopupMenu_Key.SYS_SRC, "FMS TEXT");
+        else if (this.showChecklist)
+            _dict.set(CJ4_PopupMenu_Key.SYS_SRC, "CHECKLIST");
         else
             _dict.set(CJ4_PopupMenu_Key.SYS_SRC, "SYSTEMS");
             _dict.changed = false;
@@ -521,6 +541,51 @@ class CJ4_FMSContainer extends NavSystemElementContainer {
     }
     calcETEseconds(distance, currentGroundSpeed) {
         return (distance / currentGroundSpeed) * 3600;
+    }
+}
+class CJ4_Checklist extends CJ4_PopupMenu_Handler {
+    constructor(_root, _dictionary, _gps) {
+        super();
+        this.titleSize = 15;
+        this.textSize = 13;
+        this.root = _root;
+        this.dictionary = _dictionary;
+        this.menuLeft = 35;
+        this.menuTop = 60;
+        this.menuWidth = 430;
+        this.gps = _gps;
+        this.lastCheckedItemIndex = 0;
+        this.showChecklist(0);
+    }
+
+    reset() {
+        this.showChecklist();
+    }
+
+    showChecklist(_highlight = 0) {
+        this._isOnMainPage = true;
+        let page = document.createElementNS(Avionics.SVG.NS, "svg");
+        page.setAttribute("id", "ViewBox");
+        page.setAttribute("viewBox", "0 0 500 500");
+
+        let sectionRoot = this.openMenu();
+        {
+            this.beginSection();
+            {
+                this.addTitle("CHECKLIST", this.titleSize, 1.0, "blue");
+            }
+            this.endSection();
+            this.beginSection();
+            {
+                this.addCheckbox("TURN ON SEATBELT LIGHTS", this.textSize, [CJ4_PopupMenu_Key.CHECKLIST]);
+            }
+            this.endSection();
+        }
+        this.closeMenu();
+        this.highlight(_highlight);
+        page.appendChild(sectionRoot);
+        Utils.RemoveAllChildren(this.root);
+        this.root.appendChild(page);
     }
 }
 registerInstrument("cj4-mfd-element", CJ4_MFD);
